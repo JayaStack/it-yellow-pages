@@ -1,20 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, MapPin, ChevronRight, Zap, FlaskConical, ShoppingBag, Leaf, Plug, Settings, Utensils, HeartPulse, GraduationCap, Home as HomeIcon } from 'lucide-react';
+import { Search, MapPin, ChevronRight, Zap } from 'lucide-react';
 import { businessService, categoryService } from '../services/api';
-
-const iconMap = {
-  zap: Zap,
-  'flask-conical': FlaskConical,
-  'shopping-bag': ShoppingBag,
-  leaf: Leaf,
-  plug: Plug,
-  settings: Settings,
-  utensils: Utensils,
-  'heart-pulse': HeartPulse,
-  'graduation-cap': GraduationCap,
-  home: HomeIcon
-};
+import { getCategoryIcon } from '../utils/categoryIcons';
 
 const Home = () => {
   const [categories, setCategories] = useState([]);
@@ -112,7 +100,7 @@ const Home = () => {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
             {categories.map((cat) => {
-              const Icon = iconMap[cat.icon] || Zap;
+              const Icon = getCategoryIcon(cat.icon);
               return (
                 <Link
                   key={cat._id}
@@ -150,9 +138,9 @@ const Home = () => {
                   <div className="absolute top-4 left-4 bg-primary text-secondary px-3 py-1 rounded-full text-xs font-bold shadow-lg">
                     FEATURED
                   </div>
-                  <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded text-xs font-semibold text-secondary">
-                    {biz.category?.name}
-                  </div>
+                    <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded text-xs font-semibold text-secondary">
+                      {biz.category?.name}
+                    </div>
                 </div>
                 <div className="p-6">
                   <h3 className="text-xl font-bold text-secondary mb-2 group-hover:text-primary-dark transition-colors">

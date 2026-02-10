@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Search as SearchIcon, MapPin, Filter, SlidersHorizontal, ChevronLeft, ChevronRight, Phone, Globe, Mail } from 'lucide-react';
 import { businessService, categoryService } from '../services/api';
+import { getCategoryIcon } from '../utils/categoryIcons';
 
 const SearchResults = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -93,15 +94,19 @@ const SearchResults = () => {
                   >
                     All Categories
                   </button>
-                  {categories.map(cat => (
-                    <button
-                      key={cat._id}
-                      onClick={() => updateSearch({ category: cat._id })}
-                      className={`block w-full text-left px-3 py-2 rounded-md transition-colors ${categoryId === cat._id ? 'bg-primary/20 text-secondary font-bold' : 'hover:bg-gray-50'}`}
-                    >
-                      {cat.name}
-                    </button>
-                  ))}
+                  {categories.map(cat => {
+                    const Icon = getCategoryIcon(cat.icon);
+                    return (
+                      <button
+                        key={cat._id}
+                        onClick={() => updateSearch({ category: cat._id })}
+                        className={`flex items-center gap-2 w-full text-left px-3 py-2 rounded-md transition-colors ${categoryId === cat._id ? 'bg-primary/20 text-secondary font-bold' : 'hover:bg-gray-50'}`}
+                      >
+                        <Icon size={16} />
+                        <span>{cat.name}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
