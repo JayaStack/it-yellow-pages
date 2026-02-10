@@ -9,39 +9,56 @@ const SearchResults = () => {
   const [businesses, setBusinesses] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [metadata, setMetadata] = useState({ pages: 1, count: 0 });
 
-  const keyword = searchParams.get('keyword') || '';
+  const q = searchParams.get('q') || searchParams.get('keyword') || '';
   const city = searchParams.get('city') || '';
   const categoryId = searchParams.get('category') || '';
   const page = searchParams.get('pageNumber') || 1;
 
   useEffect(() => {
-    document.title = `Search Results | ${keyword || 'All Categories'} - IT Yellow Pages`;
+    document.title = `Search Results | ${q || 'All Categories'} - IT Yellow Pages`;
     const fetchData = async () => {
       setLoading(true);
+      setError(null);
       try {
+        // Construct clean params as per requirements
+        const params = { pageNumber: page };
+        if (q) params.q = q;
+        if (city) params.city = city;
+        if (categoryId) params.category = categoryId;
+        
         const [bizRes, catRes] = await Promise.all([
-          businessService.getAll({ keyword, city, category: categoryId, pageNumber: page }),
+          businessService.getAll(params),
           categoryService.getAll()
         ]);
+        
         setBusinesses(bizRes.data.businesses);
         setMetadata({ pages: bizRes.data.pages, count: bizRes.data.count });
         setCategories(catRes.data);
       } catch (err) {
-        console.error('Search API Error:', err);
+        setError('Failed to fetch search results. Please check your connection and try again.');
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, [keyword, city, categoryId, page]);
+  }, [q, city, categoryId, page]);
 
   const updateSearch = (newParams) => {
     const nextParams = new URLSearchParams(searchParams);
+    
+    // Reset pageNumber to 1 unless it's specifically being changed
+    if (!newParams.pageNumber) {
+      nextParams.delete('pageNumber');
+    }
+
     Object.entries(newParams).forEach(([key, value]) => {
-      if (value) nextParams.set(key, value);
-      else nextParams.delete(key);
+      // Map 'keyword' to 'q' if provided
+      const paramKey = key === 'keyword' ? 'q' : key;
+      if (value) nextParams.set(paramKey, value);
+      else nextParams.delete(paramKey);
     });
     setSearchParams(nextParams);
   };
@@ -57,8 +74,8 @@ const SearchResults = () => {
               type="text"
               placeholder="Search business..."
               className="w-full bg-gray-50 border-none rounded-lg py-3 pl-10 pr-4 focus:ring-2 focus:ring-primary"
-              defaultValue={keyword}
-              onKeyDown={(e) => e.key === 'Enter' && updateSearch({ keyword: e.target.value })}
+              defaultValue={q}
+              onKeyDown={(e) => e.key === 'Enter' && updateSearch({ q: e.target.value })}
             />
           </div>
           <div className="md:w-64 relative">
@@ -71,7 +88,14 @@ const SearchResults = () => {
               onKeyDown={(e) => e.key === 'Enter' && updateSearch({ city: e.target.value })}
             />
           </div>
-          <button className="btn-primary flex items-center justify-center gap-2 md:w-32">
+          <button 
+            onClick={() => {
+              const qInput = document.querySelector('input[placeholder="Search business..."]').value;
+              const cityInput = document.querySelector('input[placeholder="Location"]').value;
+              updateSearch({ q: qInput, city: cityInput });
+            }}
+            className="btn-primary flex items-center justify-center gap-2 md:w-32"
+          >
             Search
           </button>
         </div>
@@ -132,62 +156,81 @@ const SearchResults = () => {
               </div>
             </div>
 
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl mb-8 flex items-center gap-3">
+                <span className="text-xl">⚠️</span> {error}
+              </div>
+            )}
+
             {loading ? (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="bg-white h-48 rounded-xl animate-pulse shadow-sm"></div>
+                  <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-6 animate-pulse">
+                    <div className="md:w-56 h-40 bg-gray-200 rounded-xl flex-shrink-0"></div>
+                    <div className="flex-1 space-y-4">
+                      <div className="h-6 bg-gray-200 rounded w-1/3"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                      <div className="h-16 bg-gray-200 rounded w-full"></div>
+                      <div className="flex gap-2">
+                        <div className="h-10 bg-gray-200 rounded w-32"></div>
+                        <div className="h-10 bg-gray-200 rounded w-24"></div>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : (
               <div className="space-y-6">
                 {businesses.map(biz => (
-                  <div key={biz._id} className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row gap-6 border border-gray-100 relative group">
+                  <div key={biz._id} className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col md:flex-row gap-6 border border-gray-100 relative group overflow-hidden">
                     {biz.isFeatured && (
-                      <div className="absolute top-0 left-0 bg-primary text-secondary text-[10px] font-bold px-3 py-1 rounded-tl-xl rounded-br-xl shadow-sm">
+                      <div className="absolute top-0 left-0 bg-primary text-secondary text-[10px] font-bold px-3 py-1 rounded-br-xl shadow-sm z-10">
                         PREMIUM
                       </div>
                     )}
                     
-                    <div className="md:w-56 h-40 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                    <div className="md:w-56 h-44 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
                       <img
                         src={biz.images[0] || 'https://images.unsplash.com/photo-1577412647305-991150c7d163?auto=format&fit=crop&q=80&w=400'}
                         alt={biz.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       />
                     </div>
 
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start mb-2">
-                        <Link to={`/business/${biz._id}`}>
-                          <h3 className="text-2xl font-bold text-secondary hover:text-primary-dark transition-colors">{biz.name}</h3>
-                        </Link>
-                        <div className="flex items-center bg-green-50 px-2 py-1 rounded text-green-700 text-sm font-bold border border-green-100">
-                          <span className="text-lg">★</span> {biz.rating || 0}
+                    <div className="flex-1 flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <Link to={`/business/${biz._id}`}>
+                            <h3 className="text-2xl font-bold text-secondary group-hover:text-primary-dark transition-colors">{biz.name}</h3>
+                          </Link>
+                          <div className="flex items-center bg-yellow-50 px-2 py-1 rounded text-yellow-700 text-sm font-bold border border-yellow-100">
+                            <span className="text-yellow-400 mr-1">★</span> {biz.rating || 0}
+                          </div>
                         </div>
+
+                        <div className="flex flex-wrap items-center text-gray-500 text-sm mb-4 gap-x-4 gap-y-2">
+                          <span className="flex items-center gap-1">
+                            <MapPin size={16} className="text-primary-dark" />
+                            {biz.address.area}, {biz.address.city}
+                          </span>
+                          <span className="bg-primary/10 text-primary-dark px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                            {biz.category?.name}
+                          </span>
+                        </div>
+
+                        <p className="text-gray-600 line-clamp-2 mb-4 text-sm leading-relaxed">
+                          {biz.description}
+                        </p>
                       </div>
 
-                      <div className="flex items-center text-gray-500 text-sm mb-4 gap-4">
-                        <span className="flex items-center gap-1">
-                          <MapPin size={16} className="text-primary-dark" />
-                          {biz.address.area}, {biz.address.city}
-                        </span>
-                        <span className="bg-gray-100 px-2 py-0.5 rounded text-xs">
-                          {biz.category?.name}
-                        </span>
-                      </div>
-
-                      <p className="text-gray-600 line-clamp-2 mb-4 text-sm leading-relaxed">
-                        {biz.description}
-                      </p>
-
-                      <div className="flex flex-wrap gap-3">
+                      <div className="flex flex-wrap gap-3 mt-auto">
                         {biz.phoneNumbers[0] && (
-                          <a href={`tel:${biz.phoneNumbers[0]}`} className="flex items-center gap-2 bg-secondary text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-black transition-colors">
+                          <a href={`tel:${biz.phoneNumbers[0]}`} className="flex items-center gap-2 bg-secondary text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-black transition-colors">
                             <Phone size={16} /> Call Now
                           </a>
                         )}
-                        <Link to={`/business/${biz._id}`} className="bg-primary text-secondary px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary-dark transition-colors">
-                          Details
+                        <Link to={`/business/${biz._id}`} className="bg-white border-2 border-primary text-secondary px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-primary transition-colors">
+                          View Details
                         </Link>
                       </div>
                     </div>
@@ -195,12 +238,24 @@ const SearchResults = () => {
                 ))}
 
                 {businesses.length === 0 && (
-                  <div className="bg-white p-12 rounded-xl text-center shadow-sm">
-                    <div className="bg-gray-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <SearchIcon size={40} className="text-gray-400" />
+                  <div className="bg-white p-16 rounded-3xl text-center shadow-sm border border-gray-100">
+                    <div className="bg-gray-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <SearchIcon size={48} className="text-gray-300" />
                     </div>
-                    <h3 className="text-xl font-bold mb-2">No businesses found</h3>
-                    <p className="text-gray-500">Try adjusting your keyword or category filters.</p>
+                    <h3 className="text-2xl font-bold text-secondary mb-2">
+                      {q ? `No results for "${q}"` : 'No businesses found'}
+                    </h3>
+                    <p className="text-gray-500 mb-8 max-w-sm mx-auto">
+                      {categoryId 
+                        ? 'We couldn\'t find any listings in this category matching your criteria.' 
+                        : 'Try adjusting your keywords, location, or browse by category instead.'}
+                    </p>
+                    <button 
+                      onClick={() => updateSearch({ q: '', city: '', category: '' })}
+                      className="bg-primary text-secondary font-bold py-3 px-8 rounded-xl hover:bg-primary-dark transition-all shadow-md"
+                    >
+                      Clear All Filters
+                    </button>
                   </div>
                 )}
 

@@ -7,6 +7,8 @@ import { getCategoryIcon } from '../utils/categoryIcons';
 const Home = () => {
   const [categories, setCategories] = useState([]);
   const [featuredBusinesses, setFeaturedBusinesses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [keyword, setKeyword] = useState('');
   const [location, setLocation] = useState('Kumbakonam');
   const navigate = useNavigate();
@@ -14,14 +16,19 @@ const Home = () => {
   useEffect(() => {
     document.title = 'IT Yellow Pages | Home - Local Business Directory';
     const fetchData = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const catRes = await categoryService.getAll();
         setCategories(catRes.data);
         
-        const busRes = await businessService.getFeatured();
-        setFeaturedBusinesses(busRes.data);
+        const busRes = await businessService.getAll({ featured: true });
+        const featuredData = busRes.data.businesses || busRes.data;
+        setFeaturedBusinesses(featuredData);
       } catch (err) {
-        console.error('Home API Error:', err);
+        setError('Failed to load data. Please try again later.');
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
@@ -98,22 +105,37 @@ const Home = () => {
             </Link>
           </div>
 
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl mb-8 flex items-center gap-3">
+              <span className="text-xl">⚠️</span> {error}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
-            {categories.map((cat) => {
-              const Icon = getCategoryIcon(cat.icon);
-              return (
-                <Link
-                  key={cat._id}
-                  to={`/search?category=${cat._id}`}
-                  className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl transition-all text-center border border-gray-100 group"
-                >
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-primary transition-colors">
-                    <Icon className="text-primary-dark group-hover:text-secondary" size={32} />
-                  </div>
-                  <h3 className="font-bold text-secondary group-hover:text-primary-dark">{cat.name}</h3>
-                </Link>
-              );
-            })}
+            {loading ? (
+              [...Array(5)].map((_, i) => (
+                <div key={i} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 animate-pulse">
+                  <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-24 mx-auto"></div>
+                </div>
+              ))
+            ) : (
+              categories.map((cat) => {
+                const Icon = getCategoryIcon(cat.icon);
+                return (
+                  <Link
+                    key={cat._id}
+                    to={`/search?category=${cat._id}`}
+                    className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl transition-all text-center border border-gray-100 group"
+                  >
+                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-primary transition-colors">
+                      <Icon className="text-primary-dark group-hover:text-secondary" size={32} />
+                    </div>
+                    <h3 className="font-bold text-secondary group-hover:text-primary-dark">{cat.name}</h3>
+                  </Link>
+                );
+              })
+            )}
           </div>
         </div>
       </section>
@@ -127,46 +149,66 @@ const Home = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {featuredBusinesses.length > 0 ? featuredBusinesses.map((biz) => (
-              <div key={biz._id} className="card group hover:translate-y-[-8px] transition-all duration-300 border border-gray-100">
-                <div className="relative h-48 bg-gray-200">
-                  <img
-                    src={biz.images[0] || 'https://images.unsplash.com/photo-1577412647305-991150c7d163?auto=format&fit=crop&q=80&w=400'}
-                    alt={biz.name}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-4 left-4 bg-primary text-secondary px-3 py-1 rounded-full text-xs font-bold shadow-lg">
-                    FEATURED
+            {loading ? (
+              [...Array(3)].map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
+                  <div className="h-48 bg-gray-200"></div>
+                  <div className="p-6 space-y-4">
+                    <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                    <div className="pt-4 flex justify-between">
+                      <div className="h-4 bg-gray-200 rounded w-24"></div>
+                      <div className="h-4 bg-gray-200 rounded w-16"></div>
+                    </div>
                   </div>
+                </div>
+              ))
+            ) : (
+              featuredBusinesses.length > 0 ? featuredBusinesses.map((biz) => (
+                <div key={biz._id} className="bg-white rounded-2xl shadow-sm hover:shadow-xl hover:translate-y-[-8px] transition-all duration-300 border border-gray-100 overflow-hidden group">
+                  <div className="relative h-56 overflow-hidden">
+                    <img
+                      src={biz.images[0] || 'https://images.unsplash.com/photo-1577412647305-991150c7d163?auto=format&fit=crop&q=80&w=400'}
+                      alt={biz.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute top-4 left-4 bg-primary text-secondary px-3 py-1 rounded-full text-[10px] font-bold shadow-lg">
+                      FEATURED
+                    </div>
                     <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded text-xs font-semibold text-secondary">
                       {biz.category?.name}
                     </div>
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-secondary mb-2 group-hover:text-primary-dark transition-colors">
-                    {biz.name}
-                  </h3>
-                  <div className="flex items-center text-gray-500 text-sm mb-4">
-                    <MapPin size={16} className="mr-1" />
-                    {biz.address.area}, {biz.address.city}
                   </div>
-                  <div className="flex items-center justify-between mt-6">
-                    <div className="flex items-center space-x-1">
-                      {[...Array(5)].map((_, i) => (
-                        <span key={i} className={`text-xl ${i < (biz.rating || 0) ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
-                      ))}
-                      <span className="text-gray-400 text-sm ml-2">({biz.numReviews || 0})</span>
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-secondary mb-2 group-hover:text-primary-dark transition-colors">
+                      {biz.name}
+                    </h3>
+                    <div className="flex items-center text-gray-500 text-sm mb-4">
+                      <MapPin size={16} className="mr-1 text-primary-dark" />
+                      {biz.address.area}, {biz.address.city}
                     </div>
-                    <Link to={`/business/${biz._id}`} className="text-secondary font-bold hover:text-primary-dark flex items-center gap-1 group/btn">
-                      Details <ChevronRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
-                    </Link>
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                      <div className="flex items-center space-x-1">
+                        <span className="text-yellow-400 text-lg">★</span>
+                        <span className="font-bold text-secondary">{biz.rating || 0}</span>
+                        <span className="text-gray-400 text-sm ml-1">({biz.numReviews || 0})</span>
+                      </div>
+                      <Link to={`/business/${biz._id}`} className="text-secondary font-bold hover:text-primary-dark flex items-center gap-1 group/btn">
+                        Details <ChevronRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )) : (
-              <div className="col-span-3 text-center py-10 text-gray-400">
-                No featured listings found. Check back soon!
-              </div>
+              )) : (
+                <div className="col-span-3 bg-gray-50 border-2 border-dashed border-gray-200 rounded-3xl py-16 text-center">
+                  <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                    <Zap size={32} className="text-gray-300" />
+                  </div>
+                  <h3 className="text-xl font-bold text-secondary mb-1">No featured listings found</h3>
+                  <p className="text-gray-500 mb-6">Check back soon for handpicked businesses!</p>
+                  <Link to="/search" className="btn-primary inline-flex">Explore All Businesses</Link>
+                </div>
+              )
             )}
           </div>
         </div>

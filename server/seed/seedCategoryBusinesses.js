@@ -143,6 +143,7 @@ const seedCategoryBusinesses = async () => {
           owner: adminRef._id,
           status: 'approved',
           isFeatured: true, // Make them prominent
+          featured: true,
           images: [`https://picsum.photos/seed/${faker.string.alphanumeric(12)}/1200/800`]
         });
         addedCount++;

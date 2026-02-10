@@ -7,18 +7,20 @@ const getBusinesses = async (req, res) => {
   const pageSize = 10;
   const page = Number(req.query.pageNumber) || 1;
 
-  const keyword = req.query.keyword ? {
+  const searchKeyword = req.query.keyword || req.query.q;
+  const keyword = searchKeyword ? {
     $or: [
-      { name: { $regex: req.query.keyword, $options: 'i' } },
-      { description: { $regex: req.query.keyword, $options: 'i' } }
+      { name: { $regex: searchKeyword, $options: 'i' } },
+      { description: { $regex: searchKeyword, $options: 'i' } }
     ]
   } : {};
 
   const city = req.query.city ? { 'address.city': { $regex: req.query.city, $options: 'i' } } : {};
   const category = req.query.category ? { category: req.query.category } : {};
+  const featured = req.query.featured === 'true' ? { $or: [{ isFeatured: true }, { featured: true }] } : {};
 
-  const count = await Business.countDocuments({ ...keyword, ...city, ...category, status: 'approved' });
-  const businesses = await Business.find({ ...keyword, ...city, ...category, status: 'approved' })
+  const count = await Business.countDocuments({ ...keyword, ...city, ...category, ...featured, status: 'approved' });
+  const businesses = await Business.find({ ...keyword, ...city, ...category, ...featured, status: 'approved' })
     .populate('category', 'name')
     .limit(pageSize)
     .skip(pageSize * (page - 1))

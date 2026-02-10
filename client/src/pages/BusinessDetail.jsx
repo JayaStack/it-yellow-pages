@@ -7,15 +7,18 @@ const BusinessDetail = () => {
   const { id } = useParams();
   const [business, setBusiness] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchBusiness = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const { data } = await businessService.getById(id);
         setBusiness(data);
         document.title = `${data.name} | ${data.address.city} - IT Yellow Pages`;
       } catch (err) {
-        console.error(err);
+        setError('Business details could not be found or there was a server error.');
       } finally {
         setLoading(false);
       }
@@ -23,8 +26,40 @@ const BusinessDetail = () => {
     fetchBusiness();
   }, [id]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  if (!business) return <div className="min-h-screen flex items-center justify-center">Business not found.</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="h-64 bg-secondary/50 animate-pulse"></div>
+        <div className="container mx-auto px-4 -mt-10">
+          <div className="bg-white p-8 rounded-3xl shadow-sm space-y-6">
+            <div className="flex gap-6">
+              <div className="w-32 h-32 bg-gray-200 rounded-2xl animate-pulse"></div>
+              <div className="flex-1 space-y-4">
+                <div className="h-10 bg-gray-200 rounded w-1/3 animate-pulse"></div>
+                <div className="h-6 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+              </div>
+            </div>
+            <div className="h-40 bg-gray-200 rounded-2xl animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !business) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white p-12 rounded-3xl shadow-sm text-center max-w-md border border-gray-100">
+          <div className="bg-red-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 size={40} className="text-red-300" />
+          </div>
+          <h2 className="text-2xl font-bold text-secondary mb-2">{error || 'Business Not Found'}</h2>
+          <p className="text-gray-500 mb-8">The business you are looking for might have been removed or the link is incorrect.</p>
+          <Link to="/search" className="btn-primary inline-flex">Go to Listings</Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen pb-20">
