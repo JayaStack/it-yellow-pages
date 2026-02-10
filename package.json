@@ -1,0 +1,21 @@
+{
+  "name": "yellow-pages-clone",
+  "version": "1.0.0",
+  "description": "MERN Stack Yellow Pages Clone",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "server": "cd server && npm start",
+    "client": "cd client && npm run dev",
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "keywords": [
+    "mern",
+    "mongodb",
+    "express",
+    "react",
+    "node"
+  ],
+  "author": "",
+  "license": "ISC"
+}
