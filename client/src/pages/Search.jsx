@@ -28,7 +28,7 @@ const SearchResults = () => {
         setMetadata({ pages: bizRes.data.pages, count: bizRes.data.count });
         setCategories(catRes.data);
       } catch (err) {
-        console.error(err);
+        console.error('Search API Error:', err);
       } finally {
         setLoading(false);
       }

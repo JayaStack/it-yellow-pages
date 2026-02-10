@@ -33,7 +33,7 @@ const Home = () => {
         const busRes = await businessService.getFeatured();
         setFeaturedBusinesses(busRes.data);
       } catch (err) {
-        console.error(err);
+        console.error('Home API Error:', err);
       }
     };
     fetchData();

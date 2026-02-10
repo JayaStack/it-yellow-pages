@@ -12,53 +12,55 @@ const User = require('../models/User');
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const categoryData = {
-  'Energy & Power': {
-    subs: ['Solar Power Systems', 'Electrical Generators', 'Power Backup Solutions'],
-    businesses: ['Bright Sun Solar', 'Volt Power Systems', 'Eco Energy Solutions', 'Ultra Generators']
-  },
-  'Chemicals': {
-    subs: ['Industrial Chemicals', 'Specialty Chemicals', 'Agro Chemicals'],
-    businesses: ['PureChem Solutions', 'Industrial Bond Ltd', 'AgroShield Chemicals', 'Apex Specialty Lab']
-  },
-  'Shopping': {
-    subs: ['Retail Stores', 'Fashion Boutiques', 'Electronics Outlets'],
-    businesses: ['Trendy Trends', 'Metro Mart', 'Glow Fashion', 'Smart Gizmo Hub']
-  },
-  'Livestock & Agriculture': {
-    subs: ['Dairy Farms', 'Organic Produce', 'Poultry Equipment'],
-    businesses: ['Healthy Harvest Farms', 'Pure Milk Dairy', 'Green Field Organic', 'Poultry Pro Solutions']
-  },
-  'Electricals': {
-    subs: ['Electrical Wiring', 'Lighting Fixtures', 'Switchgear'],
-    businesses: ['Lumina Lights', 'Connect Electrics', 'Safe Wire Ltd', 'Power Flow Switchgear']
-  },
-  'Machinery & Tools': {
-    subs: ['Industrial Machinery', 'Power Tools', 'Construction Equipment'],
-    businesses: ['Heavy Duty Machining', 'Precision Tools Co', 'BuildFast Equipment', 'Iron Master Tools']
-  },
-  'Food & Dining': {
-    subs: ['Fine Dining', 'Quick Service Restaurants', 'Catering Services'],
-    businesses: ['Golden Platter', 'Spice Route', 'Urban Bites', 'Elite Feast Catering']
+  'IT Services': {
+    icon: 'zap',
+    subs: ['Software Development', 'Web Hosting', 'IT Consultancy'],
+    businesses: ['CodeCraft Solutions', 'Elite IT Consulting', 'Cloud Stream Hosting', 'Secure Net IT']
   },
   'Health & Medical': {
+    icon: 'heart-pulse',
     subs: ['Clinics & Hospitals', 'Pharmacies', 'Diagnostic Labs'],
     businesses: ['Lifeline Medical Center', 'MediCare Pharmacy', 'Precision Diagnostics', 'Wellness Clinic']
   },
   'Education': {
+    icon: 'graduation-cap',
     subs: ['Professional Training', 'Schools', 'Coaching Centers'],
     businesses: ['Academy of Excellence', 'Future Scholars School', 'Tech Master Institute', 'Success Coaching']
   },
   'Real Estate': {
+    icon: 'home',
     subs: ['Residential Properties', 'Commercial Real Estate', 'Property Management'],
     businesses: ['Horizon Builders', 'Blue Sky Realty', 'Prime Urban Properties', 'Safe Hands Management']
   },
-  'IT Services': {
-    subs: ['Software Development', 'Web Hosting', 'IT Consultancy'],
-    businesses: ['CodeCraft Solutions', 'Elite IT Consulting', 'Cloud Stream Hosting', 'Secure Net IT']
+  'Food & Dining': {
+    icon: 'utensils',
+    subs: ['Fine Dining', 'Quick Service Restaurants', 'Catering Services'],
+    businesses: ['Golden Platter', 'Spice Route', 'Urban Bites', 'Elite Feast Catering']
   },
-  'Home Services': {
-    subs: ['Plumbing & Carpentry', 'Interior Design', 'Security Systems'],
-    businesses: ['Home Shield Security', 'Luxury Interiors', 'Pro Fix Plumbing', 'Elite Deco Hub']
+  'Shopping': {
+    icon: 'shopping-bag',
+    subs: ['Retail Stores', 'Fashion Boutiques', 'Electronics Outlets'],
+    businesses: ['Trendy Trends', 'Metro Mart', 'Glow Fashion', 'Smart Gizmo Hub']
+  },
+  'Energy & Power': {
+    icon: 'plug',
+    subs: ['Solar Power Systems', 'Electrical Generators', 'Power Backup Solutions'],
+    businesses: ['Bright Sun Solar', 'Volt Power Systems', 'Eco Energy Solutions', 'Ultra Generators']
+  },
+  'Machinery & Tools': {
+    icon: 'settings',
+    subs: ['Industrial Machinery', 'Power Tools', 'Construction Equipment'],
+    businesses: ['Heavy Duty Machining', 'Precision Tools Co', 'BuildFast Equipment', 'Iron Master Tools']
+  },
+  'Livestock & Agriculture': {
+    icon: 'leaf',
+    subs: ['Dairy Farms', 'Organic Produce', 'Poultry Equipment'],
+    businesses: ['Healthy Harvest Farms', 'Pure Milk Dairy', 'Green Field Organic', 'Poultry Pro Solutions']
+  },
+  'Chemicals': {
+    icon: 'flask-conical',
+    subs: ['Industrial Chemicals', 'Specialty Chemicals', 'Agro Chemicals'],
+    businesses: ['PureChem Solutions', 'Industrial Bond Ltd', 'AgroShield Chemicals', 'Apex Specialty Lab']
   }
 };
 
@@ -87,35 +89,32 @@ const seedCategoryBusinesses = async () => {
     const report = [];
 
     // TO ENSURE DATA INTEGRITY, WE WILL:
-    // 1. Delete all businesses in the list to avoid category mismatch
-    const allBusinessNames = Object.values(categoryData).flatMap(d => d.businesses);
-    console.log(`Deleting ${allBusinessNames.length} potentially stale records...`);
-    await Business.deleteMany({ name: { $in: allBusinessNames } });
+    // 1. Delete all categories, subcategories and businesses for a fresh start
+    console.log('Clearing old data...');
+    await Category.deleteMany({});
+    await SubCategory.deleteMany({});
+    await Business.deleteMany({}); // Delete all for a fresh demo restart
+    console.log('Data cleared.');
 
     for (const [catName, details] of Object.entries(categoryData)) {
       console.log(`\nProcessing: ${catName}`);
 
-      // Find or Create Category
-      let category = await Category.findOne({ name: catName });
-      if (!category) {
-        category = await Category.create({
-          name: catName,
-          icon: 'briefcase',
-          slug: catName.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')
-        });
-        console.log(`  + New Category: ${catName}`);
-      }
+      // Create Category
+      const category = await Category.create({
+        name: catName,
+        icon: details.icon || 'briefcase',
+        slug: catName.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')
+      });
+      console.log(`  + Category: ${catName} (${category.icon})`);
 
-      // Ensure Subcategories exist
+
+      // Create Subcategories
       const subCategoryIds = [];
       for (const subName of details.subs) {
-        let sub = await SubCategory.findOne({ name: subName, category: category._id });
-        if (!sub) {
-          sub = await SubCategory.create({
-            name: subName,
-            category: category._id
-          });
-        }
+        const sub = await SubCategory.create({
+          name: subName,
+          category: category._id
+        });
         subCategoryIds.push(sub._id);
       }
 
